@@ -93,21 +93,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Funded wallet with {} lamports", fund_amount);
 
     // =========================================================================
-    // 5. SIGN A TRANSACTION (SOL Transfer from swig wallet)
-    // =========================================================================
-    println!("\n=== Signing SOL Transfer ===");
-
-    let recipient = Pubkey::new_unique();
-    let amount = 1000; // lamports
-
-    let transfer_ix = system_instruction::transfer(&info.swig_wallet_address, &recipient, amount);
-
-    // Sign and submit the transaction through the swig wallet
-    let signature = loaded_wallet.sign_v2(vec![transfer_ix], None)?;
-    println!("Transfer signed! Signature: {}", signature);
-
-    // =========================================================================
-    // 6. ADD A NEW AUTHORITY
+    // 5. ADD A NEW AUTHORITY
     // =========================================================================
     println!("\n=== Adding New Authority ===");
 
@@ -115,10 +101,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("New authority pubkey: {}", new_authority.pubkey());
 
     // Add with limited SOL transfer permission (1 SOL)
-    let permissions = vec![Permission::Sol {
-        amount: 1_000_000_000,
-        recurring: None,
-    }];
+    let permissions = vec![
+        Permission::Sol {
+            amount: 1_000_000_000,
+            recurring: None,
+        },
+        Permission::ProgramCurated,
+    ];
 
     let sig = loaded_wallet.add_authority(
         AuthorityType::Ed25519,
@@ -128,7 +117,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Authority added! Signature: {}", sig);
 
     // =========================================================================
-    // 7. CHECK IF WALLET EXISTS
+    // 6. SWITCH TO NEW AUTHORITY
+    // =========================================================================
+    println!("\n=== Switching to New Authority ===");
+
+    // Create a new client role with the new authority's public key
+    let new_client_role = Ed25519ClientRole::new(new_authority.pubkey());
+
+    // Reload the wallet with the new authority
+    loaded_wallet.switch_authority(1, Box::new(new_client_role), Some(&new_authority))?;
+
+    println!("Switched to new authority!");
+
+    // =========================================================================
+    // 7. SIGN A TRANSACTION (as new authority)
+    // =========================================================================
+    println!("\n=== Signing SOL Transfer (as new authority) ===");
+
+    let recipient = Pubkey::new_unique();
+    let amount = 1000; // lamports
+
+    let transfer_ix = system_instruction::transfer(&info.swig_wallet_address, &recipient, amount);
+
+    // Sign and submit the transaction through the swig wallet using the new authority
+    let signature = loaded_wallet.sign_v2(vec![transfer_ix], None)?;
+    println!("Transfer signed! Signature: {}", signature);
+
+    // =========================================================================
+    // 8. CHECK IF WALLET EXISTS
     // =========================================================================
     println!("\n=== Check Wallet Existence ===");
 

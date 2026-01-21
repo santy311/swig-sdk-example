@@ -108,9 +108,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Funded wallet with {} lamports", fund_amount);
 
     // =========================================================================
-    // 6. SIGN A TRANSACTION
+    // 6. ADD SECP256K1 AUTHORITY TO EXISTING WALLET
     // =========================================================================
-    println!("\n=== Signing SOL Transfer ===");
+    println!("\n=== Adding Secp256k1 Authority ===");
+
+    // Generate another secp256k1 keypair
+    let (new_secp_wallet, new_public_key) = create_secp256k1_wallet();
+
+    // Add 0x04 prefix for uncompressed public key format (65 bytes total)
+    let mut new_public_key_with_prefix = vec![0x04];
+    new_public_key_with_prefix.extend_from_slice(&new_public_key);
+    println!("New authority: {}", hex::encode(&new_public_key_with_prefix));
+
+    let permissions = vec![
+        Permission::Sol {
+            amount: 500_000_000, // 0.5 SOL limit
+            recurring: None,
+        },
+        Permission::ProgramCurated,
+    ];
+
+    let sig =
+        loaded_wallet.add_authority(AuthorityType::Secp256k1, &new_public_key_with_prefix, permissions)?;
+    println!("Authority added! Signature: {}", sig);
+
+    // =========================================================================
+    // 7. SWITCH TO NEW AUTHORITY
+    // =========================================================================
+    println!("\n=== Switching to New Authority ===");
+
+    // Create a new client role with the new authority's credentials
+    let new_client_role = create_secp256k1_client_role(new_public_key, new_secp_wallet);
+
+    // Switch to the new authority (role index 1)
+    loaded_wallet.switch_authority(1, Box::new(new_client_role), None)?;
+
+    println!("Switched to new authority!");
+
+    // =========================================================================
+    // 8. SIGN A TRANSACTION (as new authority)
+    // =========================================================================
+    println!("\n=== Signing SOL Transfer (as new authority) ===");
 
     let recipient = Pubkey::new_unique();
     let amount = 1000;
@@ -123,28 +161,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // - Incrementing odometer
     let signature = loaded_wallet.sign_v2(vec![transfer_ix], None)?;
     println!("Transfer signed! Signature: {}", signature);
-
-    // =========================================================================
-    // 7. ADD SECP256K1 AUTHORITY TO EXISTING WALLET
-    // =========================================================================
-    println!("\n=== Adding Secp256k1 Authority ===");
-
-    // Generate another secp256k1 keypair
-    let (_, new_public_key) = create_secp256k1_wallet();
-
-    // Add 0x04 prefix for uncompressed public key format (65 bytes total)
-    let mut new_public_key_with_prefix = vec![0x04];
-    new_public_key_with_prefix.extend_from_slice(&new_public_key);
-    println!("New authority: {}", hex::encode(&new_public_key_with_prefix));
-
-    let permissions = vec![Permission::Sol {
-        amount: 500_000_000, // 0.5 SOL limit
-        recurring: None,
-    }];
-
-    let sig =
-        loaded_wallet.add_authority(AuthorityType::Secp256k1, &new_public_key_with_prefix, permissions)?;
-    println!("Authority added! Signature: {}", sig);
 
     println!("\n=== Done ===");
     Ok(())

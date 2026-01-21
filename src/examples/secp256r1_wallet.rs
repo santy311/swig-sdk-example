@@ -111,9 +111,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Funded wallet with {} lamports", fund_amount);
 
     // =========================================================================
-    // 6. SIGN A TRANSACTION
+    // 6. ADD SECP256R1 AUTHORITY TO EXISTING WALLET
     // =========================================================================
-    println!("\n=== Signing SOL Transfer ===");
+    println!("\n=== Adding Secp256r1 Authority ===");
+
+    let (new_signing_key, new_public_key) = create_secp256r1_keypair();
+    println!("New authority: {}", hex::encode(&new_public_key));
+
+    let permissions = vec![
+        Permission::Sol {
+            amount: 500_000_000,
+            recurring: None,
+        },
+        Permission::ProgramCurated,
+    ];
+
+    let sig =
+        loaded_wallet.add_authority(AuthorityType::Secp256r1, &new_public_key, permissions)?;
+    println!("Authority added! Signature: {}", sig);
+
+    // =========================================================================
+    // 7. SWITCH TO NEW AUTHORITY
+    // =========================================================================
+    println!("\n=== Switching to New Authority ===");
+
+    // Create a new client role with the new authority's credentials
+    let new_signing_key_der = new_signing_key.private_key_to_der()?;
+    let new_client_role = create_secp256r1_client_role(new_public_key, new_signing_key_der)?;
+
+    // Switch to the new authority (role index 1)
+    loaded_wallet.switch_authority(1, Box::new(new_client_role), None)?;
+
+    println!("Switched to new authority!");
+
+    // =========================================================================
+    // 8. SIGN A TRANSACTION (as new authority)
+    // =========================================================================
+    println!("\n=== Signing SOL Transfer (as new authority) ===");
 
     let recipient = Pubkey::new_unique();
     let amount = 1000;
@@ -123,23 +157,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Secp256r1 signing automatically handles replay protection
     let signature = loaded_wallet.sign_v2(vec![transfer_ix], None)?;
     println!("Transfer signed! Signature: {}", signature);
-
-    // =========================================================================
-    // 7. ADD SECP256R1 AUTHORITY TO EXISTING WALLET
-    // =========================================================================
-    println!("\n=== Adding Secp256r1 Authority ===");
-
-    let (_, new_public_key) = create_secp256r1_keypair();
-    println!("New authority: {}", hex::encode(&new_public_key));
-
-    let permissions = vec![Permission::Sol {
-        amount: 500_000_000,
-        recurring: None,
-    }];
-
-    let sig =
-        loaded_wallet.add_authority(AuthorityType::Secp256r1, &new_public_key, permissions)?;
-    println!("Authority added! Signature: {}", sig);
 
     // =========================================================================
     // WebAuthn Integration Notes
