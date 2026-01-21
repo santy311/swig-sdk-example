@@ -1,0 +1,53 @@
+[package]
+name = "swig-examples"
+version = "0.1.0"
+edition = "2024"
+description = "Examples for using the Swig SDK"
+
+[dependencies]
+#swig-sdk = { git = "https://github.com/anagrambuild/swig-wallet.git", branch = "santhosh/rust-sdk-fix" }
+swig-sdk = { path = "/Users/santhosh/Documents/anagram/swig/swig1/rust-sdk" }
+# Solana dependencies
+solana-keypair = "2.0"
+solana-signer = "2.0"
+solana-sdk = "2.0"
+solana-client = "2.0"
+spl-token = "8.0"
+spl-associated-token-account = "6.0"
+
+# Crypto
+secp256k1 = { version = "0.30", features = ["rand", "global-context", "recovery"] }
+p256 = { version = "0.13", features = ["ecdsa", "pkcs8", "pem"] }
+solana-secp256r1-program = "2.0"
+openssl = { version = "0.10", features = ["vendored"] }
+alloy-signer = "0.14"
+alloy-signer-local = "0.14"
+alloy-primitives = "1.5"
+
+# Utilities
+rand = "0.8"
+bs58 = "0.5"
+hex = "0.4"
+
+# Async runtime (for MultiWalletManager)
+tokio = { version = "1", features = ["full"] }
+
+[[example]]
+name = "ed25519_wallet"
+path = "src/examples/ed25519_wallet.rs"
+
+[[example]]
+name = "secp256k1_wallet"
+path = "src/examples/secp256k1_wallet.rs"
+
+[[example]]
+name = "secp256r1_wallet"
+path = "src/examples/secp256r1_wallet.rs"
+
+[[example]]
+name = "wallet_operations"
+path = "src/examples/wallet_operations.rs"
+
+[[example]]
+name = "multi_wallet_manager"
+path = "src/examples/multi_wallet_manager.rs"
