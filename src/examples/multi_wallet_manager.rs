@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut wallet_ids: Vec<([u8; 32], u32)> = Vec::new();
     let mut wallet_addresses: Vec<Pubkey> = Vec::new();
 
-    for i in 0..1 {
+    for i in 0..3 {
         let swig_id: [u8; 32] = rand::thread_rng().r#gen();
 
         let wallet = SwigWallet::builder()
